@@ -1,4 +1,8 @@
-![CI](https://github.com/Idonotes9/json-tools/actions/workflows/ci.yml/badge.svg)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/Idonotes9/json-tools)
+![Build Status](https://github.com/Idonotes9/json-tools/actions/workflows/ci.yml/badge.svg)
+![License](https://img.shields.io/github/license/Idonotes9/json-tools)
+![Python](https://img.shields.io/badge/python-3.11-blue)
+
 # json-tools (Extended)
 
 Advanced Python CLI for working with JSON files.  
