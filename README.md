@@ -32,5 +32,14 @@ python json_tools.py diff sample.json sample_changed.json
 pytest -q
 ```
 
+# Additional examples
+
+```bash
+# Merge two JSON files and show result
+python json_tools.py merge data1.json data2.json
+
+# Compare two JSON files
+python json_tools.py diff old.json new.json
+
 ---
 GitHub Actions runs tests automatically on every commit.
