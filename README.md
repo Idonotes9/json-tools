@@ -1,3 +1,4 @@
+![CI](https://github.com/Idonotes9/json-tools/actions/workflows/ci.yml/badge.svg)
 # json-tools (Extended)
 
 Advanced Python CLI for working with JSON files.  
