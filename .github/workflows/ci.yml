@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:    # ← ручной запуск из вкладки Actions
   push:
     branches: [ main ]
   pull_request:
