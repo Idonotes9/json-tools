@@ -1,0 +1,18 @@
+{
+  "users": [
+    {
+      "name": "Alice",
+      "email": "alice@example.com",
+      "age": 30
+    },
+    {
+      "name": "Bob",
+      "email": "bob@example.com",
+      "age": 25
+    }
+  ],
+  "config": {
+    "theme": "dark",
+    "notifications": true
+  }
+}

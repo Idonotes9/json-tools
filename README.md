@@ -1,41 +1,35 @@
-# json-tools
+# json-tools (Extended)
 
-Small but capable Python CLI for working with JSON files.
+Advanced Python CLI for working with JSON files.  
+Includes testing, CI workflow, and sample data for demonstrations.
 
 ## Features
-- **pretty**: pretty-print JSON with indentation (supports `--inplace`)
-- **minify**: compact JSON (removes whitespace)
-- **validate**: validate JSON (exit code 0/1)
-- **pick**: extract value by dotted path with indexes, e.g. `a.b[0].c`
-- **merge**: deep-merge two JSONs (right overrides left)
-- **diff**: structural diff between two JSONs (added/removed/changed)
+- **pretty** — Pretty-print JSON (supports `--inplace`)
+- **minify** — Compact JSON by removing spaces
+- **validate** — Validate JSON and print result
+- **pick** — Extract values by dotted path (e.g., `users[0].email`)
+- **merge** — Deep-merge two JSONs (right overrides left)
+- **diff** — Show structural differences (added / removed / changed)
 
-## Install (optional)
-No external deps. You can just run it with Python:
+## Example usage
 ```bash
-python json_tools.py --help
+# Pretty-print a file
+python json_tools.py pretty sample.json
+
+# Extract first user's email
+python json_tools.py pick sample.json --path users[0].email
+
+# Validate JSON
+python json_tools.py validate sample.json
+
+# Create diff between two JSON files
+python json_tools.py diff sample.json sample_changed.json
 ```
 
-## Examples
+## Running tests
 ```bash
-# pretty print to stdout
-python json_tools.py pretty data.json
-
-# in-place pretty formatting
-python json_tools.py pretty data.json --inplace
-
-# minify
-python json_tools.py minify data.json > data.min.json
-
-# validate
-python json_tools.py validate data.json
-
-# pick by path (dotted with indexes)
-python json_tools.py pick data.json --path users[0].email
-
-# merge (b overrides a)
-python json_tools.py merge a.json b.json > merged.json
-
-# diff
-python json_tools.py diff old.json new.json
+pytest -q
 ```
+
+---
+GitHub Actions runs tests automatically on every commit.
