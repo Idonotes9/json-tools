@@ -49,7 +49,20 @@ def parse_path(path: str):
 
     return tokens
 
-
+def pick(data, dotted_path: str):
+    """
+    Helper that returns value from nested JSON-like structure
+    using our parse_path representation.
+    """
+    cur = data
+    for token, is_index in parse_path(dotted_path):
+        if is_index:
+            # token — индекс списка
+            cur = cur[token]
+        else:
+            # token — ключ словаря
+            cur = cur[token]
+    return cur
 # ---------------------------------------------------------
 #  JSON helpers
 # ---------------------------------------------------------
@@ -104,7 +117,7 @@ def get_by_path(data, dotted_path: str):
 
 def cmd_pick(args):
     data = load_json(Path(args.input))
-    value = get_by_path(data, args.path)
+    value = pick(data, args.path)
     json.dump(value, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
 
