@@ -5,6 +5,38 @@ from pathlib import Path
 
 from schema_validator import validate_json_with_schema
 
+def parse_path(dotted_path: str):
+    """
+    Parse dotted path like 'users[0].email' into a list of steps.
+    Example: 'users[0].email' -> ['users', 0, 'email']
+    """
+    parts = []
+    token = ""
+    i = 0
+
+    while i < len(dotted_path):
+        ch = dotted_path[i]
+        if ch == ".":
+            if token:
+                parts.append(token)
+                token = ""
+            i += 1
+        elif ch == "[":
+            if token:
+                parts.append(token)
+                token = ""
+            j = dotted_path.index("]", i)
+            index_str = dotted_path[i + 1 : j]
+            parts.append(int(index_str))
+            i = j + 1
+        else:
+            token += ch
+            i += 1
+
+    if token:
+        parts.append(token)
+
+    return parts
 
 def load_json(path: Path):
     with path.open("r", encoding="utf-8") as f:
@@ -45,19 +77,27 @@ def cmd_validate(args):
         sys.stdout.write("Valid JSON\n")
 
 
-def get_by_path(data, dotted_path: str):
+def pick(data, dotted_path: str):
+    """
+    Library helper: pick value from nested JSON by dotted path.
+
+    Example:
+        pick(data, "users[0].email")
+    """
     cur = data
-    for part in dotted_path.split("."):
-        if part.endswith("]"):
-            # list access: name[index]
-            name, idx = part.split("[", 1)
-            idx = int(idx[:-1])
-            if name:
-                cur = cur[name]
-            cur = cur[idx]
+    for part in parse_path(dotted_path):
+        if isinstance(part, int):
+            cur = cur[part]
         else:
             cur = cur[part]
     return cur
+
+
+def get_by_path(data, dotted_path: str):
+    """
+    Backwards-compatible alias for older code.
+    """
+    return pick(data, dotted_path)
 
 
 def cmd_pick(args):
