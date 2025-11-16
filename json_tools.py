@@ -29,66 +29,51 @@ def save_json(path: Path, data: Any) -> None:
 # -------------------------
 
 
-def parse_path(path: str) -> List[Tuple[Any, bool]]:
+def parse_path(dotted_path: str):
     """
-    Разобрать строку вида 'a.b[2].c' в список токенов.
-
-    Возвращает список кортежей (token, is_index), где:
-      - token: str для ключа словаря или int для индекса списка
-      - is_index: True, если token — индекс списка, False — ключ словаря
-
-    Пример:
-      parse_path("a.b[2].c")
-      -> [("a", False), ("b", False), (2, True), ("c", False)]
+    Разбирает путь вида 'a.b[2].c' в простой список токенов:
+    ['a', 'b', 2, 'c'].
     """
-    tokens: List[Tuple[Any, bool]] = []
+    tokens = []
     buf = ""
     i = 0
 
-    while i < len(path):
-        ch = path[i]
+    while i < len(dotted_path):
+        ch = dotted_path[i]
 
         if ch == ".":  # разделитель полей
             if buf:
-                tokens.append((buf, False))
+                tokens.append(buf)
                 buf = ""
             i += 1
-
-        elif ch == "[":  # индекс списка [2]
+        elif ch == "[":  # индекс массива
             if buf:
-                tokens.append((buf, False))
+                tokens.append(buf)
                 buf = ""
-            j = path.index("]", i)
-            idx_str = path[i + 1 : j]
-            idx = int(idx_str)
-            tokens.append((idx, True))
+            j = dotted_path.index("]", i)
+            idx_str = dotted_path[i + 1:j]
+            tokens.append(int(idx_str))
             i = j + 1
-            # допускаем запись вида a[0].b
-            if i < len(path) and path[i] == ".":
-                i += 1
-
         else:
             buf += ch
             i += 1
 
     if buf:
-        tokens.append((buf, False))
+        tokens.append(buf)
 
     return tokens
 
 
-def pick(data: Any, dotted_path: str) -> Any:
+def pick(data, dotted_path: str):
     """
-    Вернуть значение из вложенной структуры JSON-подобного объекта
-    по строковому пути, используя представление parse_path.
+    Возвращает значение из JSON-объекта по пути 'a.b[2].c'.
+    Использует parse_path, которая возвращает ['a', 'b', 2, 'c'].
     """
     cur = data
-    for token, is_index in parse_path(dotted_path):
-        if is_index:
-            # token — индекс списка
+    for token in parse_path(dotted_path):
+        if isinstance(token, int):
             cur = cur[token]
         else:
-            # token — ключ словаря
             cur = cur[token]
     return cur
 
@@ -163,7 +148,7 @@ def cmd_validate(args: argparse.Namespace) -> None:
         sys.stdout.write("Valid JSON\n")
 
 
-def cmd_pick(args: argparse.Namespace) -> None:
+def cmd_pick(args):
     data = load_json(Path(args.input))
     value = pick(data, args.path)
     json.dump(value, sys.stdout, ensure_ascii=False, indent=2)
