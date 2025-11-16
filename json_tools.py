@@ -7,8 +7,10 @@ from schema_validator import validate_json_with_schema
 
 def parse_path(dotted_path: str):
     """
-    Parse dotted path like 'users[0].email' into a list of steps.
-    Example: 'users[0].email' -> ['users', 0, 'email']
+    Parse dotted path like 'a.b[2].c' into a tuple of (value, is_index) items.
+
+    Example:
+        'a.b[2].c' -> (('a', False), ('b', False), (2, True), ('c', False))
     """
     parts = []
     token = ""
@@ -16,27 +18,28 @@ def parse_path(dotted_path: str):
 
     while i < len(dotted_path):
         ch = dotted_path[i]
-        if ch == ".":
+        if ch == ".":  # разделитель между ключами
             if token:
-                parts.append(token)
+                parts.append((token, False))
                 token = ""
             i += 1
-        elif ch == "[":
+        elif ch == "[":  # индекс списка
             if token:
-                parts.append(token)
+                parts.append((token, False))
                 token = ""
             j = dotted_path.index("]", i)
             index_str = dotted_path[i + 1 : j]
-            parts.append(int(index_str))
+            parts.append((int(index_str), True))
             i = j + 1
         else:
             token += ch
             i += 1
 
     if token:
-        parts.append(token)
+        parts.append((token, False))
 
-    return parts
+    return tuple(parts)
+    
 
 def load_json(path: Path):
     with path.open("r", encoding="utf-8") as f:
@@ -85,11 +88,11 @@ def pick(data, dotted_path: str):
         pick(data, "users[0].email")
     """
     cur = data
-    for part in parse_path(dotted_path):
-        if isinstance(part, int):
-            cur = cur[part]
+    for value, is_index in parse_path(dotted_path):
+        if is_index:
+            cur = cur[value]  # value здесь int
         else:
-            cur = cur[part]
+            cur = cur[value]  # value здесь str
     return cur
 
 
