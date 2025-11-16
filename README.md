@@ -6,44 +6,26 @@
 # json-tools (Extended)
 
 Advanced Python CLI for working with JSON files.  
-Includes testing, CI workflow, and sample data for demonstrations.
-
-## Features
-- **pretty** — Pretty-print JSON (supports `--inplace`)
-- **minify** — Compact JSON by removing spaces
-- **validate** — Validate JSON and print result
-- **pick** — Extract values by dotted path (e.g., `users[0].email`)
-- **merge** — Deep-merge two JSONs (right overrides left)
-- **diff** — Show structural differences (added / removed / changed)
-
-## Example usage
-```bash
-# Pretty-print a file
-python json_tools.py pretty sample.json
-
-# Extract first user's email
-python json_tools.py pick sample.json --path users[0].email
-
-# Validate JSON
-python json_tools.py validate sample.json
-
-# Create diff between two JSON files
-python json_tools.py diff sample.json sample_changed.json
-```
-
-## Running tests
-```bash
-pytest -q
-```
-
-# Additional examples
-
-```bash
-# Merge two JSON files and show result
-python json_tools.py merge data1.json data2.json
-
-# Compare two JSON files
-python json_tools.py diff old.json new.json
+Includes a small utility script, JSON Schema validation, tests, and CI via GitHub Actions.
 
 ---
-GitHub Actions runs tests automatically on every commit.
+
+## Features
+
+- **pretty** – Pretty-print JSON (optionally write changes back to file)
+- **minify** – Compact JSON by removing unnecessary whitespace
+- **validate** – Check JSON syntax and print validation result
+- **pick** – Extract values by dotted path (e.g. `users[0].email`)
+- **merge** – Deep-merge two JSON documents (right overrides left)
+- **diff** – Show simple structural differences between two JSON objects
+- **schema** – Validate JSON using a user-provided JSON Schema
+
+---
+
+## Installation
+
+Clone the repository:
+
+```bash
+git clone https://github.com/Idonotes9/json-tools.git
+cd json-tools
