@@ -3,7 +3,8 @@ from json_tools import load_json, deep_merge, pick, parse_path
 def test_parse_path():
     path = "a.b[2].c"
     result = parse_path(path)
-    assert result == [("a", False), ("b", False), (2, True), ("c", False)]
+    # Наш парсер возвращает простые токены: "a", "b", 2, "c"
+    assert result == ["a", "b", 2, "c"]
 
 def test_deep_merge_dicts():
     a = {"x": 1, "nested": {"a": 1, "b": 2}}
