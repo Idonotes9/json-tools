@@ -72,3 +72,32 @@ def test_validate_invalid_json(tmp_path):
 
     # ожидаем ошибку (ненулевой код возврата)
     assert code != 0
+
+def test_schema_command_valid(tmp_path):
+    data_path = tmp_path / "data.json"
+    schema_path = tmp_path / "schema.json"
+
+    data_path.write_text('{"age": 30}', encoding="utf-8")
+    schema_path.write_text(
+        '{"type": "object", "properties": {"age": {"type": "number"}}, "required": ["age"]}',
+        encoding="utf-8",
+    )
+
+    code, out, err = run_cli(["schema", str(data_path), str(schema_path)])
+
+    assert code == 0
+
+
+def test_schema_command_invalid(tmp_path):
+    data_path = tmp_path / "data_invalid.json"
+    schema_path = tmp_path / "schema.json"
+
+    data_path.write_text('{"age": "oops"}', encoding="utf-8")
+    schema_path.write_text(
+        '{"type": "object", "properties": {"age": {"type": "number"}}, "required": ["age"]}',
+        encoding="utf-8",
+    )
+
+    code, out, err = run_cli(["schema", str(data_path), str(schema_path)])
+
+    assert code != 0
