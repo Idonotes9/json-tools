@@ -96,11 +96,54 @@ def pick(data, dotted_path: str):
     return cur
 
 
+def parse_path(path: str):
+    """
+    Разбирает строку вида 'a.b[2].c' в список токенов:
+    [('a', False), ('b', False), (2, True), ('c', False)]
+    Второй элемент кортежа: True — индекс списка, False — ключ словаря.
+    """
+    tokens = []
+    buf = ""
+    i = 0
+
+    while i < len(path):
+        ch = path[i]
+
+        if ch == ".":  # разделитель между полями
+            if buf:
+                tokens.append((buf, False))
+                buf = ""
+            i += 1
+        elif ch == "[":  # индекс массива [0]
+            if buf:
+                tokens.append((buf, False))
+                buf = ""
+            # ищем закрывающую скобку
+            j = path.index("]", i)
+            index_str = path[i + 1:j]
+            tokens.append((int(index_str), True))
+            i = j + 1
+        else:
+            buf += ch
+            i += 1
+
+    if buf:
+        tokens.append((buf, False))
+
+    return tokens
+
+
 def get_by_path(data, dotted_path: str):
     """
-    Backwards-compatible alias for older code.
+    Использует parse_path, чтобы пройти по data.
     """
-    return pick(data, dotted_path)
+    cur = data
+    for token, is_index in parse_path(dotted_path):
+        if is_index:
+            cur = cur[token]     # token — целое число, индекс списка
+        else:
+            cur = cur[token]     # token — строка, ключ словаря
+    return cur
 
 
 def cmd_pick(args):
