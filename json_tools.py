@@ -5,42 +5,54 @@ from pathlib import Path
 
 from schema_validator import validate_json_with_schema
 
-def parse_path(dotted_path: str):
-    """
-    Parse dotted path like 'a.b[2].c' into a tuple of (value, is_index) items.
 
-    Example:
-        'a.b[2].c' -> (('a', False), ('b', False), (2, True), ('c', False))
+# ---------------------------------------------------------
+#  PATH PARSER (старый формат, который ожидают тесты)
+# ---------------------------------------------------------
+def parse_path(path: str):
     """
-    parts = []
-    token = ""
+    Parse dotted/indexed path like 'a.b[2].c' into tokens:
+        ["a", "b", 2, "c"]
+    """
+    tokens = []
+    buf = ""
     i = 0
 
-    while i < len(dotted_path):
-        ch = dotted_path[i]
-        if ch == ".":  # разделитель между ключами
-            if token:
-                parts.append((token, False))
-                token = ""
+    while i < len(path):
+        ch = path[i]
+
+        if ch == ".":      # разделитель
+            if buf:
+                tokens.append(buf)
+                buf = ""
             i += 1
-        elif ch == "[":  # индекс списка
-            if token:
-                parts.append((token, False))
-                token = ""
-            j = dotted_path.index("]", i)
-            index_str = dotted_path[i + 1 : j]
-            parts.append((int(index_str), True))
+
+        elif ch == "[":    # индекс массива
+            if buf:
+                tokens.append(buf)
+                buf = ""
+
+            j = path.index("]", i)
+            idx_str = path[i + 1 : j]
+            tokens.append(int(idx_str))
             i = j + 1
-        else:
-            token += ch
+
+            if i < len(path) and path[i] == ".":
+                i += 1
+
+        else:              # обычный символ
+            buf += ch
             i += 1
 
-    if token:
-        parts.append((token, False))
+    if buf:
+        tokens.append(buf)
 
-    return tuple(parts)
-    
+    return tokens
 
+
+# ---------------------------------------------------------
+#  JSON helpers
+# ---------------------------------------------------------
 def load_json(path: Path):
     with path.open("r", encoding="utf-8") as f:
         return json.load(f)
@@ -51,6 +63,9 @@ def save_json(path: Path, data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
+# ---------------------------------------------------------
+#  COMMAND IMPLEMENTATIONS
+# ---------------------------------------------------------
 def cmd_pretty(args):
     data = load_json(Path(args.input))
     if args.output:
@@ -80,69 +95,10 @@ def cmd_validate(args):
         sys.stdout.write("Valid JSON\n")
 
 
-def pick(data, dotted_path: str):
-    """
-    Library helper: pick value from nested JSON by dotted path.
-
-    Example:
-        pick(data, "users[0].email")
-    """
-    cur = data
-    for value, is_index in parse_path(dotted_path):
-        if is_index:
-            cur = cur[value]  # value здесь int
-        else:
-            cur = cur[value]  # value здесь str
-    return cur
-
-
-def parse_path(path: str):
-    """
-    Разбирает строку вида 'a.b[2].c' в список токенов:
-    [('a', False), ('b', False), (2, True), ('c', False)]
-    Второй элемент кортежа: True — индекс списка, False — ключ словаря.
-    """
-    tokens = []
-    buf = ""
-    i = 0
-
-    while i < len(path):
-        ch = path[i]
-
-        if ch == ".":  # разделитель между полями
-            if buf:
-                tokens.append((buf, False))
-                buf = ""
-            i += 1
-        elif ch == "[":  # индекс массива [0]
-            if buf:
-                tokens.append((buf, False))
-                buf = ""
-            # ищем закрывающую скобку
-            j = path.index("]", i)
-            index_str = path[i + 1:j]
-            tokens.append((int(index_str), True))
-            i = j + 1
-        else:
-            buf += ch
-            i += 1
-
-    if buf:
-        tokens.append((buf, False))
-
-    return tokens
-
-
 def get_by_path(data, dotted_path: str):
-    """
-    Использует parse_path, чтобы пройти по data.
-    """
     cur = data
-    for token, is_index in parse_path(dotted_path):
-        if is_index:
-            cur = cur[token]     # token — целое число, индекс списка
-        else:
-            cur = cur[token]     # token — строка, ключ словаря
+    for token in parse_path(dotted_path):
+        cur = cur[token]
     return cur
 
 
@@ -177,9 +133,9 @@ def cmd_merge(args):
 
 
 def cmd_diff(args):
-    # simple structural diff: keys present in one and not other
     left = load_json(Path(args.left))
     right = load_json(Path(args.right))
+
     if isinstance(left, dict) and isinstance(right, dict):
         diff = {
             "only_in_left": sorted(set(left.keys()) - set(right.keys())),
@@ -187,77 +143,71 @@ def cmd_diff(args):
         }
     else:
         diff = {"only_in_left": [], "only_in_right": []}
+
     json.dump(diff, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
 
 
 def cmd_schema(args):
-    """Новая команда: проверка JSON по JSON Schema."""
     ok = validate_json_with_schema(args.data, args.schema)
     if ok:
         sys.stdout.write("JSON matches schema\n")
         sys.exit(0)
     else:
-        # validate_json_with_schema уже напечатает ошибку
         sys.exit(1)
 
 
+# ---------------------------------------------------------
+#  ARGPARSE
+# ---------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="json-tools: small CLI for working with JSON files."
     )
-    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    sub = parser.add_subparsers(dest="command", required=True)
 
     # pretty
-    p_pretty = subparsers.add_parser("pretty", help="Pretty-print JSON file")
-    p_pretty.add_argument("input", help="Input JSON file")
-    p_pretty.add_argument("-o", "--output", help="Optional output file")
-    p_pretty.set_defaults(func=cmd_pretty)
+    p = sub.add_parser("pretty", help="Pretty-print JSON")
+    p.add_argument("input")
+    p.add_argument("-o", "--output")
+    p.set_defaults(func=cmd_pretty)
 
     # minify
-    p_minify = subparsers.add_parser("minify", help="Minify JSON file")
-    p_minify.add_argument("input", help="Input JSON file")
-    p_minify.add_argument("-o", "--output", help="Optional output file")
-    p_minify.set_defaults(func=cmd_minify)
+    p = sub.add_parser("minify", help="Minify JSON")
+    p.add_argument("input")
+    p.add_argument("-o", "--output")
+    p.set_defaults(func=cmd_minify)
 
-    # validate
-    p_validate = subparsers.add_parser("validate", help="Validate JSON syntax")
-    p_validate.add_argument("input", help="Input JSON file")
-    p_validate.set_defaults(func=cmd_validate)
+    # validate syntax
+    p = sub.add_parser("validate", help="Validate JSON syntax")
+    p.add_argument("input")
+    p.set_defaults(func=cmd_validate)
 
     # pick
-    p_pick = subparsers.add_parser("pick", help="Pick value by dotted path")
-    p_pick.add_argument("input", help="Input JSON file")
-    p_pick.add_argument(
-        "--path",
-        required=True,
-        help="Dotted path (e.g., users[0].email)",
-    )
-    p_pick.set_defaults(func=cmd_pick)
+    p = sub.add_parser("pick", help="Pick value by dotted path")
+    p.add_argument("input")
+    p.add_argument("--path", required=True)
+    p.set_defaults(func=cmd_pick)
 
     # merge
-    p_merge = subparsers.add_parser("merge", help="Deep-merge two JSON files")
-    p_merge.add_argument("left", help="Left JSON file")
-    p_merge.add_argument("right", help="Right JSON file")
-    p_merge.add_argument("-o", "--output", help="Optional output file")
-    p_merge.set_defaults(func=cmd_merge)
+    p = sub.add_parser("merge", help="Merge two JSON files")
+    p.add_argument("left")
+    p.add_argument("right")
+    p.add_argument("-o", "--output")
+    p.set_defaults(func=cmd_merge)
 
     # diff
-    p_diff = subparsers.add_parser(
-        "diff",
-        help="Show simple structural diff for two JSON files",
-    )
-    p_diff.add_argument("left", help="Left JSON file")
-    p_diff.add_argument("right", help="Right JSON file")
-    p_diff.set_defaults(func=cmd_diff)
+    p = sub.add_parser("diff", help="Diff keys of two JSON objects")
+    p.add_argument("left")
+    p.add_argument("right")
+    p.set_defaults(func=cmd_diff)
 
-    # schema (НОВАЯ КОМАНДА)
-    p_schema = subparsers.add_parser(
-        "schema", help="Validate JSON file using JSON Schema"
-    )
-    p_schema.add_argument("data", help="JSON data file")
-    p_schema.add_argument("schema", help="JSON Schema file")
-    p_schema.set_defaults(func=cmd_schema)
+    # schema
+    p = sub.add_parser("schema", help="Validate JSON using JSON Schema")
+    p.add_argument("data")
+    p.add_argument("schema")
+    p.set_defaults(func=cmd_schema)
 
     return parser
 
